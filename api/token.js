@@ -1,19 +1,22 @@
 let currentToken = null;
 let validUntil = 0;
 
+// duración: 7 días (no jode y evita spam)
+const TOKEN_DURATION = 7 * 24 * 60 * 60 * 1000;
+
+function generateToken() {
+  return Math.random().toString(36).substring(2) +
+         Math.random().toString(36).substring(2);
+}
+
 export default function handler(req, res) {
   const now = Date.now();
 
-  // Generar token si no existe o si expiró
   if (!currentToken || now > validUntil) {
-    currentToken = Math.random().toString(36).substring(2) +
-                   Math.random().toString(36).substring(2);
-
-    // 4 horas de validez
-    validUntil = now + 4 * 60 * 60 * 1000;
+    currentToken = generateToken();
+    validUntil = now + TOKEN_DURATION;
   }
 
-  res.setHeader("Content-Type", "application/json");
   res.status(200).json({
     token: currentToken,
     expires: validUntil
