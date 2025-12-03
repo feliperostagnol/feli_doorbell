@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Timbre de Felipe</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding-top: 20px; }
+    video, canvas { width: 90%; border-radius: 12px; }
+    button {
+      padding: 15px 25px; font-size: 20px;
+      border: none; background: #1e90ff; color: white;
+      border-radius: 10px; margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>Tocar timbre</h2>
+
+<div id="status">Cargando...</div>
+
+<video id="cam" autoplay playsinline></video>
+<button id="snap" style="display:none;">Enviar aviso</button>
+
+<script>
+const botToken = "PONÉ_ACÁ_TU_BOT_TOKEN";
+const chatId = "PONÉ_ACÁ_TU_CHAT_ID";
+
+async function validateToken() {
+  const token = new URLSearchParams(window.location.search).get("token");
+
+  const res = await fetch(`/api/check?token=${token}`);
+  const data = await res.json();
+
+  if (!data.valid) {
+    document.body.innerHTML = "<h2>Token expirado. Volvé a escanear el QR.</h2>";
+    return false;
+  }
+
+  return true;
+}
+
+async function startCamera() {
+  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+  cam.srcObject = stream;
+}
+
+snap.onclick = async () => {
+  const canvas = document.createElement('canvas');
+  canvas.width = cam.videoWidth;
+  canvas.height = cam.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(cam, 0, 0);
+
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg"));
+
+  const formData = new FormData();
+  formData.append("chat_id", chatId);
+  formData.append("caption", "📬 Hay alguien abajo");
+  formData.append("photo", blob, "foto.jpg");
+
+  await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+    method: "POST",
+    body: formData
+  });
+
+  alert("Aviso enviado 👍");
+};
+
+(async () => {
+  if (await validateToken()) {
+    document.getElementById("status").style.display = "none";
+    document.getElementById("snap").style.display = "block";
+    startCamera();
+  }
+})();
+</script>
+
+</body>
+</html>
