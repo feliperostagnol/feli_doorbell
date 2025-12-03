@@ -3,97 +3,97 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Timbre con Foto</title>
-
+  <title>Timbre QR</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #fafafa;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
+      font-family: sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
       text-align: center;
     }
-
-    #app { display: none; }
-    video { width: 280px; border-radius: 12px; margin-bottom: 20px; }
-
-    .btn {
-      padding: 18px 32px;
-      font-size: 22px;
+    video, img {
+      width: 100%;
+      max-width: 360px;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+    button {
+      padding: 15px 25px;
+      margin-top: 20px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
       background: #0070f3;
       color: white;
-      border-radius: 12px;
-      border: none;
       cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     }
+    #status { margin-top: 20px; font-size: 16px; }
   </style>
 </head>
 <body>
 
-  <div id="message"></div>
+  <h1>Tocar Timbre</h1>
+  <p>Cuando aprietes el botón te saco una foto y te aviso 🛎️</p>
 
-  <div id="app">
-    <h1>🔔 Tocá el timbre</h1>
+  <video id="video" autoplay playsinline></video>
 
-    <video id="cam" autoplay></video>
-    <button class="btn" onclick="tocar()">Tocar Timbre</button>
-  </div>
+  <button id="snap">Tocar timbre</button>
+
+  <div id="status"></div>
 
   <script>
-    async function validarToken() {
-      const params = new URLSearchParams(window.location.search);
-      const tokenUrl = params.get("token");
+    const video = document.getElementById("video");
+    const statusEl = document.getElementById("status");
+    const snapBtn = document.getElementById("snap");
 
-      if (!tokenUrl) {
-        document.getElementById("message").innerHTML = "<h1>Falta token. Escaneá el QR.</h1>";
-        return;
+    // 🚀 Solicitar cámara
+    async function initCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+      } catch (err) {
+        console.error("No se pudo acceder a la cámara:", err);
+        statusEl.textContent = "Error: no se puede acceder a la cámara.";
       }
-
-      const response = await fetch("/api/token");
-      const data = await response.json();
-
-      if (tokenUrl !== data.token) {
-        document.getElementById("message").innerHTML = "<h1>Token expirado. Escaneá de nuevo.</h1>";
-        return;
-      }
-
-      document.getElementById("app").style.display = "block";
-      iniciarCamara();
     }
+    initCamera();
 
-    async function iniciarCamara() {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      document.getElementById("cam").srcObject = stream;
-    }
+    snapBtn.addEventListener("click", async () => {
+      statusEl.textContent = "Enviando…";
 
-    async function tocar() {
-      const video = document.getElementById("cam");
+      // 📸 Capturar frame del video
       const canvas = document.createElement("canvas");
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-
       const ctx = canvas.getContext("2d");
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const foto = canvas.toDataURL("image/jpeg");
 
-      await fetch("/api/send", { 
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: "🔔 Timbre con foto",
-          photo: foto
-        })
-      });
+      // Convertir a blob
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg"));
 
-      alert("Timbre enviado 🚀");
-    }
+      const formData = new FormData();
+      formData.append("photo", blob, "timbre.jpg");
+      formData.append("message", "Alguien tocó el timbre 🚪🔔");
 
-    validarToken();
+      try {
+        const res = await fetch("https://feli-doorbell.vercel.app/api/send", {
+          method: "POST",
+          body: formData,
+        });
+
+        const json = await res.json();
+        console.log(json);
+
+        if (json.ok) {
+          statusEl.textContent = "Timbre enviado ✔️";
+        } else {
+          statusEl.textContent = "Error enviando el timbre ❌";
+        }
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Error de red ❌";
+      }
+    });
   </script>
 
 </body>
