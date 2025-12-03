@@ -29,7 +29,8 @@ snap.onclick = async () => {
 
   const base64 = canvas.toDataURL("image/jpeg");
 
-  await fetch('/api/check', {
+  // 🔥 CORREGIDO: ahora llama al endpoint correcto
+  await fetch('/api/send', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ photo: base64 })
