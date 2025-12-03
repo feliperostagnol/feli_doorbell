@@ -1,0 +1,23 @@
+{
+  "name": "02-doorbell",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/feliperostagnol/feli_doorbell.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/feliperostagnol/feli_doorbell/issues"
+  },
+  "homepage": "https://github.com/feliperostagnol/feli_doorbell#readme",
+  "dependencies": {
+    "formidable": "^3.5.4"
+  }
+}
