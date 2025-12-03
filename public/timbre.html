@@ -1,65 +1,108 @@
-<script>
-const video = document.getElementById("video");
-const statusEl = document.getElementById("status");
-const snapBtn = document.getElementById("snap");
-
-// Esperar a que el video realmente cargue
-video.addEventListener("loadedmetadata", () => {
-  console.log("📸 Cámara lista:", video.videoWidth, video.videoHeight);
-});
-
-async function initCamera() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    video.srcObject = stream;
-  } catch (err) {
-    console.error(err);
-    statusEl.textContent = "Error accediendo a la cámara.";
-  }
-}
-initCamera();
-
-snapBtn.addEventListener("click", async () => {
-  statusEl.textContent = "Enviando…";
-
-  // 💥 Esperar SI O SI que la cámara tenga dimensiones reales
-  if (video.videoWidth === 0 || video.videoHeight === 0) {
-    await new Promise(r => setTimeout(r, 200));
-  }
-
-  const canvas = document.createElement("canvas");
-  canvas.width = video.videoWidth || 640;
-  canvas.height = video.videoHeight || 480;
-
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-  // 💥 GARANTIZAR que toBlob siempre devuelva un blob válido
-  const blob = await new Promise(resolve => {
-    canvas.toBlob(b => resolve(b || new Blob()), "image/jpeg", 0.9);
-  });
-
-  const formData = new FormData();
-  formData.append("photo", blob, "timbre.jpg");
-  formData.append("message", "Alguien tocó el timbre 🚪🔔");
-
-  try {
-    const res = await fetch("/api/send", {
-      method: "POST",
-      body: formData
-    });
-
-    const json = await res.json();
-    console.log(json);
-
-    if (json.ok) {
-      statusEl.textContent = "Timbre enviado ✔️";
-    } else {
-      statusEl.textContent = "Error enviando el timbre ❌";
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tocar Timbre</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+      text-align: center;
     }
-  } catch (err) {
-    console.error(err);
-    statusEl.textContent = "Error de red ❌";
-  }
-});
-</script>
+    video {
+      width: 100%;
+      max-width: 360px;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+    button {
+      padding: 15px 25px;
+      margin-top: 20px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      background: #0070f3;
+      color: white;
+      cursor: pointer;
+    }
+    #status {
+      margin-top: 20px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Tocar Timbre</h1>
+  <p>Cuando aprietes el botón te saco una foto y te aviso 🛎️</p>
+
+  <video id="video" autoplay playsinline></video>
+
+  <button id="snap">Tocar timbre</button>
+
+  <div id="status"></div>
+
+  <!-- 🔥 EL SCRIPT VA AL FINAL, CUANDO EL DOM YA EXISTE -->
+  <script>
+    const video = document.getElementById("video");
+    const statusEl = document.getElementById("status");
+    const snapBtn = document.getElementById("snap");
+
+    async function initCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+      } catch (err) {
+        statusEl.textContent = "No se puede acceder a la cámara.";
+      }
+    }
+
+    initCamera();
+
+    snapBtn.addEventListener("click", async () => {
+      statusEl.textContent = "Enviando…";
+
+      // Esperar un poquito a que el video cargue
+      if (video.videoWidth === 0) {
+        await new Promise(res => setTimeout(res, 200));
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const blob = await new Promise(resolve =>
+        canvas.toBlob(b => resolve(b || new Blob()), "image/jpeg", 0.95)
+      );
+
+      const formData = new FormData();
+      formData.append("photo", blob, "timbre.jpg");
+      formData.append("message", "Alguien tocó el timbre 🚪🔔");
+
+      try {
+        const res = await fetch("/api/send", {
+          method: "POST",
+          body: formData,
+        });
+
+        const json = await res.json();
+        console.log(json);
+
+        if (json.ok) {
+          statusEl.textContent = "Timbre enviado ✔️";
+        } else {
+          statusEl.textContent = "Error enviando el timbre ❌";
+        }
+      } catch (err) {
+        statusEl.textContent = "Error de red ❌";
+      }
+    });
+  </script>
+
+</body>
+</html>
