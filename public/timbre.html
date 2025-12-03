@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Timbre QR</title>
+  <title>Tocar Timbre</title>
   <style>
     body {
       font-family: sans-serif;
@@ -46,7 +46,7 @@
     const statusEl = document.getElementById("status");
     const snapBtn = document.getElementById("snap");
 
-    // 🚀 Solicitar cámara
+    // 🚀 Inicializar cámara
     async function initCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -68,7 +68,7 @@
       const ctx = canvas.getContext("2d");
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Convertir a blob
+      // Convertir a blob (JPEG)
       const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg"));
 
       const formData = new FormData();
@@ -76,7 +76,7 @@
       formData.append("message", "Alguien tocó el timbre 🚪🔔");
 
       try {
-        const res = await fetch("https://feli-doorbell.vercel.app/api/send", {
+        const res = await fetch("/api/send", {   // <<=== SIN CORS, MISMO DOMINIO
           method: "POST",
           body: formData,
         });
