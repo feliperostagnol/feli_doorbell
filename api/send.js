@@ -5,8 +5,11 @@ export default async function handler(req, res) {
 
   const { message } = req.body;
 
-  const TELEGRAM_BOT_TOKEN = 8580491011:AAEuKQ14nfhk6cGjowLn4yvTD2UjOjvAX4w;
-  const CHAT_ID = 6648664943; // tu chat ID real
+  // ⚠️ IMPORTANTE: el token SIEMPRE entre comillas
+  const TELEGRAM_BOT_TOKEN = "8580491011:AAEuKQ14nfhk6cGjowLn4yvTD2UjOjvAX4w";
+  
+  // tu chat ID real
+  const CHAT_ID = 6648664943;
 
   try {
     const telegramRes = await fetch(
