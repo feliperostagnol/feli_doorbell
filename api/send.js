@@ -1,46 +1,68 @@
+import formidable from "formidable";
+import fs from "fs";
+
 export const config = {
-  api: { bodyParser: true }
+  api: {
+    bodyParser: false, // necesario para FormData
+  },
 };
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({ ok: false, error: "Method not allowed" });
   }
 
-  const { message, photo } = req.body;
+  const form = formidable({ multiples: false });
 
-  const TELEGRAM_BOT_TOKEN = "TU_TOKEN_AQUÍ";
-  const CHAT_ID = 6648664943;
+  const data = await new Promise((resolve, reject) => {
+    form.parse(req, (err, fields, files) => {
+      if (err) reject(err);
+      resolve({ fields, files });
+    });
+  });
 
-  try {
-    // 1) Enviar texto
-    await fetch(
-      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+  const message = data.fields.message || "Timbre tocado";
+  const photo = data.files.photo;
+
+  const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
+  const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+
+  // Si no hay foto, mandamos solo texto
+  if (!photo) {
+    const resp = await fetch(
+      `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: CHAT_ID, text: message })
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: message,
+        }),
       }
     );
 
-    // 2) Enviar foto
-    if (photo) {
-      await fetch(
-        `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: CHAT_ID,
-            photo: photo
-          })
-        }
-      );
-    }
-
-    return res.status(200).json({ ok: true });
-  } catch (e) {
-    console.error("ERROR SEND:", e);
-    res.status(500).json({ ok: false, error: e.message });
+    const json = await resp.json();
+    return res.status(200).json({ ok: true, result: json });
   }
+
+  // Con foto → enviar multipart a Telegram
+  const formData = new FormData();
+  formData.append("chat_id", CHAT_ID);
+  formData.append("caption", message);
+  formData.append(
+    "photo",
+    fs.createReadStream(photo.filepath),
+    "timbre.jpg"
+  );
+
+  const resp = await fetch(
+    `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`,
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+
+  const json = await resp.json();
+  return res.status(200).json({ ok: true, result: json });
 }
