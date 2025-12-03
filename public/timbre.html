@@ -1,19 +1,90 @@
-export let currentToken = null;
-export let validUntil = 0;
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Timbre</title>
 
-export default function handler(req, res) {
-  const now = Date.now();
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #fafafa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+    }
 
-  if (!currentToken || now > validUntil) {
-    currentToken = Math.random().toString(36).substring(2) +
-                   Math.random().toString(36).substring(2);
+    #app {
+      display: none;
+    }
 
-    validUntil = now + 4 * 60 * 60 * 1000; // 4h
-  }
+    .btn {
+      padding: 20px 40px;
+      font-size: 28px;
+      background: #0070f3;
+      color: white;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
 
-  res.writeHead(302, {
-    Location: `/timbre.html?token=${currentToken}`
-  });
+    .btn:active {
+      transform: scale(0.97);
+    }
+  </style>
+</head>
+<body>
 
-  res.end();
-}
+  <div id="message"></div>
+
+  <div id="app">
+    <h1>🔔 Tocá el timbre</h1>
+    <button class="btn" onclick="tocar()">Tocar Timbre</button>
+  </div>
+
+  <script>
+    async function validarToken() {
+      const params = new URLSearchParams(window.location.search);
+      const tokenUrl = params.get("token");
+
+      if (!tokenUrl) {
+        document.getElementById("message").innerHTML = "<h1>Falta el token. Escaneá el QR.</h1>";
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/token");
+        const data = await response.json();
+
+        if (tokenUrl !== data.token) {
+          document.getElementById("message").innerHTML = "<h1>Token expirado. Volvé a escanear el QR.</h1>";
+          return;
+        }
+
+        // Token correcto → mostrar UI del timbre
+        document.getElementById("message").style.display = "none";
+        document.getElementById("app").style.display = "block";
+
+      } catch (error) {
+        document.getElementById("message").innerHTML = "<h1>Error validando el token.</h1>";
+      }
+    }
+
+    async function tocar() {
+      try {
+        await fetch("/api/send", { method: "POST" });
+        alert("Timbre enviado 🚀");
+      } catch (err) {
+        alert("Error enviando timbre");
+      }
+    }
+
+    validarToken();
+  </script>
+
+</body>
+</html>
