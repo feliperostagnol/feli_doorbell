@@ -1,14 +1,36 @@
+export const config = {
+  api: {
+    bodyParser: true,
+  },
+};
+async function tocar() {
+  try {
+    await fetch("/api/send", { 
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: "🚪🔔 Timbre tocado!"
+      })
+    });
+
+    alert("Timbre enviado 🚀");
+  } catch (err) {
+    alert("Error enviando timbre");
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { message } = req.body;
+  const { message } = req.body || {};
 
-  // ⚠️ IMPORTANTE: el token SIEMPRE entre comillas
+  if (!message) {
+    return res.status(400).json({ error: "Missing message" });
+  }
+
   const TELEGRAM_BOT_TOKEN = "8580491011:AAEuKQ14nfhk6cGjowLn4yvTD2UjOjvAX4w";
-  
-  // tu chat ID real
   const CHAT_ID = 6648664943;
 
   try {
