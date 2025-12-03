@@ -39,8 +39,10 @@
 </head>
 <body>
 
+  <!-- Mensajes de validación -->
   <div id="message"></div>
 
+  <!-- UI del timbre -->
   <div id="app">
     <h1>🔔 Tocá el timbre</h1>
     <button class="btn" onclick="tocar()">Tocar Timbre</button>
@@ -51,33 +53,47 @@
       const params = new URLSearchParams(window.location.search);
       const tokenUrl = params.get("token");
 
+      // No viene token → no dejar pasar
       if (!tokenUrl) {
-        document.getElementById("message").innerHTML = "<h1>Falta el token. Escaneá el QR.</h1>";
+        document.getElementById("message").innerHTML =
+          "<h1>Falta el token. Escaneá el QR.</h1>";
         return;
       }
 
       try {
+        // Pedimos el token válido actual al backend
         const response = await fetch("/api/token");
         const data = await response.json();
 
+        // Token NO coincide → expiró
         if (tokenUrl !== data.token) {
-          document.getElementById("message").innerHTML = "<h1>Token expirado. Volvé a escanear el QR.</h1>";
+          document.getElementById("message").innerHTML =
+            "<h1>Token expirado. Volvé a escanear el QR.</h1>";
           return;
         }
 
-        // Token correcto → mostrar UI del timbre
+        // Token OK → mostrar UI del timbre
         document.getElementById("message").style.display = "none";
         document.getElementById("app").style.display = "block";
 
       } catch (error) {
-        document.getElementById("message").innerHTML = "<h1>Error validando el token.</h1>";
+        document.getElementById("message").innerHTML =
+          "<h1>Error validando el token.</h1>";
       }
     }
 
     async function tocar() {
       try {
-        await fetch("/api/send", { method: "POST" });
+        await fetch("/api/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: "🚪 Timbre tocado"
+          })
+        });
+
         alert("Timbre enviado 🚀");
+
       } catch (err) {
         alert("Error enviando timbre");
       }
