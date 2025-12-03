@@ -1,40 +1,23 @@
-<script>
-async function validateToken() {
-  const token = new URLSearchParams(window.location.search).get("token");
+let currentToken = null;
+let validUntil = 0;
 
-  const res = await fetch(`/api/check?token=${token}`);
-  const data = await res.json();
+const TOKEN_DURATION = 4 * 60 * 60 * 1000; // 4 horas
 
-  if (!data.valid) {
-    document.body.innerHTML = "<h2>Token expirado. Volvé a escanear el QR.</h2>";
-    return false;
+function generateToken() {
+  return Math.random().toString(36).slice(2) +
+         Math.random().toString(36).slice(2);
+}
+
+export default function handler(req, res) {
+  const now = Date.now();
+
+  if (!currentToken || now > validUntil) {
+    currentToken = generateToken();
+    validUntil = now + TOKEN_DURATION;
   }
 
-  return true;
-}
-
-async function startCamera() {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: "user" }
+  res.writeHead(302, {
+    Location: `/timbre.html?token=${currentToken}`
   });
-  cam.srcObject = stream;
+  res.end();
 }
-
-snap.onclick = async () => {
-  const canvas = document.createElement('canvas');
-  canvas.width = cam.videoWidth;
-  canvas.height = cam.videoHeight;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(cam, 0, 0, canvas.width, canvas.height);
-
-  const base64 = canvas.toDataURL("image/jpeg");
-
-  await fetch('/api/send', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ photo: base64 })
-  });
-
-  alert("Aviso enviado 👍");
-};
-</script>

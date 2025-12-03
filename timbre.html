@@ -1,26 +1,12 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <title>Tocar timbre</title>
-  <style>
-    video { width: 100%; max-width: 350px; }
-    button { margin-top: 20px; padding: 10px 20px; font-size: 18px; }
-  </style>
-</head>
-
-<body>
-  <h2>Tocar timbre</h2>
-
-  <div id="status">Cargando…</div>
-
-  <video id="cam" autoplay playsinline></video>
-  <button id="snap" style="display:none;">Enviar aviso</button>
+<button id="snap">Tocar timbre</button>
+<video id="cam" autoplay></video>
 
 <script>
+const snap = document.getElementById("snap");
+const cam = document.getElementById("cam");
+
 async function validateToken() {
   const token = new URLSearchParams(window.location.search).get("token");
-
   const res = await fetch(`/api/check?token=${token}`);
   const data = await res.json();
 
@@ -28,50 +14,34 @@ async function validateToken() {
     document.body.innerHTML = "<h2>Token expirado. Volvé a escanear el QR.</h2>";
     return false;
   }
-
   return true;
 }
 
 async function startCamera() {
-  const cam = document.getElementById("cam");
-  const snap = document.getElementById("snap");
-
   const stream = await navigator.mediaDevices.getUserMedia({
     video: { facingMode: "user" }
   });
-
   cam.srcObject = stream;
-  snap.style.display = "block";
 }
 
-// 👇 ACÁ ARMAMOS TODO CUANDO LA PÁGINA CARGA
-window.onload = async () => {
-  const ok = await validateToken();
-  if (ok) startCamera();
+snap.onclick = async () => {
+  const canvas = document.createElement("canvas");
+  canvas.width = cam.videoWidth;
+  canvas.height = cam.videoHeight;
+  const c = canvas.getContext("2d");
+  c.drawImage(cam, 0, 0, canvas.width, canvas.height);
 
-  const cam = document.getElementById("cam");
-  const snap = document.getElementById("snap");
+  const base64 = canvas.toDataURL("image/jpeg");
 
-  snap.onclick = async () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = cam.videoWidth;
-    canvas.height = cam.videoHeight;
+  await fetch("/api/check", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ photo: base64 })
+  });
 
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(cam, 0, 0, canvas.width, canvas.height);
-
-    const base64 = canvas.toDataURL("image/jpeg");
-
-    await fetch("/api/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ photo: base64 })
-    });
-
-    alert("Aviso enviado 👍");
-  };
+  alert("Aviso enviado 👍");
 };
-</script>
 
-</body>
-</html>
+validateToken();
+startCamera();
+</script>
