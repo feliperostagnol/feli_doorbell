@@ -1,15 +1,41 @@
-import { IncomingMessage } from "http";
+export default async function handler(req, res) {
+  try {
+    const body = req.body ? JSON.parse(req.body) : {};
+    const photo = body.photo;
 
-// Misma variable compartida (serverless mantiene instancia caliente a veces)
-let currentToken;
-let validUntil;
+    const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+    const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-export default function handler(req, res) {
-  const { token } = req.query;
+    if (!BOT_TOKEN || !CHAT_ID) {
+      console.error("Missing env vars", BOT_TOKEN, CHAT_ID);
+      return res.status(500).json({ error: "Missing env vars" });
+    }
 
-  // Lógica duplicada para que no rompa
-  // (lo ideal es compartir estado, pero en serverless cada instancia es independiente)
-  const isValid = true; // Por ahora validamos siempre
+    // mensaje
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: CHAT_ID,
+        text: "🔔 Alguien tocó el timbre",
+      }),
+    });
 
-  res.status(200).json({ valid: isValid });
+    // foto si viene
+    if (photo) {
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          photo: photo,
+        }),
+      });
+    }
+
+    res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error("ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
 }
