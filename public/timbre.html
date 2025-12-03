@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Timbre</title>
+  <title>Timbre con Foto</title>
 
   <style>
     body {
       font-family: Arial, sans-serif;
       background: #fafafa;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       height: 100vh;
@@ -17,23 +18,18 @@
       text-align: center;
     }
 
-    #app {
-      display: none;
-    }
+    #app { display: none; }
+    video { width: 280px; border-radius: 12px; margin-bottom: 20px; }
 
     .btn {
-      padding: 20px 40px;
-      font-size: 28px;
+      padding: 18px 32px;
+      font-size: 22px;
       background: #0070f3;
       color: white;
       border-radius: 12px;
       border: none;
       cursor: pointer;
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    }
-
-    .btn:active {
-      transform: scale(0.97);
     }
   </style>
 </head>
@@ -43,6 +39,8 @@
 
   <div id="app">
     <h1>🔔 Tocá el timbre</h1>
+
+    <video id="cam" autoplay></video>
     <button class="btn" onclick="tocar()">Tocar Timbre</button>
   </div>
 
@@ -52,44 +50,47 @@
       const tokenUrl = params.get("token");
 
       if (!tokenUrl) {
-        document.getElementById("message").innerHTML =
-          "<h1>Falta el token. Escaneá el QR.</h1>";
+        document.getElementById("message").innerHTML = "<h1>Falta token. Escaneá el QR.</h1>";
         return;
       }
 
-      try {
-        const response = await fetch("/api/token");
-        const data = await response.json();
+      const response = await fetch("/api/token");
+      const data = await response.json();
 
-        if (tokenUrl !== data.token) {
-          document.getElementById("message").innerHTML =
-            "<h1>Token expirado. Volvé a escanear el QR.</h1>";
-          return;
-        }
-
-        document.getElementById("message").style.display = "none";
-        document.getElementById("app").style.display = "block";
-
-      } catch (error) {
-        document.getElementById("message").innerHTML =
-          "<h1>Error validando el token.</h1>";
+      if (tokenUrl !== data.token) {
+        document.getElementById("message").innerHTML = "<h1>Token expirado. Escaneá de nuevo.</h1>";
+        return;
       }
+
+      document.getElementById("app").style.display = "block";
+      iniciarCamara();
+    }
+
+    async function iniciarCamara() {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      document.getElementById("cam").srcObject = stream;
     }
 
     async function tocar() {
-      try {
-        await fetch("/api/send", { 
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message: "🚪🔔 Timbre tocado!"
-          })
-        });
+      const video = document.getElementById("cam");
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
 
-        alert("Timbre enviado 🚀");
-      } catch (err) {
-        alert("Error enviando timbre");
-      }
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const foto = canvas.toDataURL("image/jpeg");
+
+      await fetch("/api/send", { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: "🔔 Timbre con foto",
+          photo: foto
+        })
+      });
+
+      alert("Timbre enviado 🚀");
     }
 
     validarToken();

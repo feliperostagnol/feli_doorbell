@@ -1,57 +1,46 @@
 export const config = {
-  api: {
-    bodyParser: true,
-  },
+  api: { bodyParser: true }
 };
-async function tocar() {
-  try {
-    await fetch("/api/send", { 
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: "🚪🔔 Timbre tocado!"
-      })
-    });
-
-    alert("Timbre enviado 🚀");
-  } catch (err) {
-    alert("Error enviando timbre");
-  }
-}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { message } = req.body || {};
+  const { message, photo } = req.body;
 
-  if (!message) {
-    return res.status(400).json({ error: "Missing message" });
-  }
-
-  const TELEGRAM_BOT_TOKEN = "8580491011:AAEuKQ14nfhk6cGjowLn4yvTD2UjOjvAX4w";
+  const TELEGRAM_BOT_TOKEN = "TU_TOKEN_AQUÍ";
   const CHAT_ID = 6648664943;
 
   try {
-    const telegramRes = await fetch(
+    // 1) Enviar texto
+    await fetch(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: CHAT_ID,
-          text: message,
-        }),
+        body: JSON.stringify({ chat_id: CHAT_ID, text: message })
       }
     );
 
-    const data = await telegramRes.json();
-    console.log("Telegram result:", data);
+    // 2) Enviar foto
+    if (photo) {
+      await fetch(
+        `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: CHAT_ID,
+            photo: photo
+          })
+        }
+      );
+    }
 
-    return res.status(200).json({ ok: true, data });
-  } catch (error) {
-    console.error("Error sending to Telegram:", error);
-    return res.status(500).json({ ok: false, error });
+    return res.status(200).json({ ok: true });
+  } catch (e) {
+    console.error("ERROR SEND:", e);
+    res.status(500).json({ ok: false, error: e.message });
   }
 }
