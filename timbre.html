@@ -1,3 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Tocar timbre</title>
+  <style>
+    video { width: 100%; max-width: 350px; }
+    button { margin-top: 20px; padding: 10px 20px; font-size: 18px; }
+  </style>
+</head>
+
+<body>
+  <h2>Tocar timbre</h2>
+
+  <div id="status">Cargando…</div>
+
+  <video id="cam" autoplay playsinline></video>
+  <button id="snap" style="display:none;">Enviar aviso</button>
+
 <script>
 async function validateToken() {
   const token = new URLSearchParams(window.location.search).get("token");
@@ -14,28 +33,45 @@ async function validateToken() {
 }
 
 async function startCamera() {
+  const cam = document.getElementById("cam");
+  const snap = document.getElementById("snap");
+
   const stream = await navigator.mediaDevices.getUserMedia({
     video: { facingMode: "user" }
   });
+
   cam.srcObject = stream;
+  snap.style.display = "block";
 }
 
-snap.onclick = async () => {
-  const canvas = document.createElement('canvas');
-  canvas.width = cam.videoWidth;
-  canvas.height = cam.videoHeight;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(cam, 0, 0, canvas.width, canvas.height);
+// 👇 ACÁ ARMAMOS TODO CUANDO LA PÁGINA CARGA
+window.onload = async () => {
+  const ok = await validateToken();
+  if (ok) startCamera();
 
-  const base64 = canvas.toDataURL("image/jpeg");
+  const cam = document.getElementById("cam");
+  const snap = document.getElementById("snap");
 
-  // 🔥 CORREGIDO: ahora llama al endpoint correcto
-  await fetch('/api/send', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ photo: base64 })
-  });
+  snap.onclick = async () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = cam.videoWidth;
+    canvas.height = cam.videoHeight;
 
-  alert("Aviso enviado 👍");
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(cam, 0, 0, canvas.width, canvas.height);
+
+    const base64 = canvas.toDataURL("image/jpeg");
+
+    await fetch("/api/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ photo: base64 })
+    });
+
+    alert("Aviso enviado 👍");
+  };
 };
 </script>
+
+</body>
+</html>
